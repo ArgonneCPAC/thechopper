@@ -80,11 +80,18 @@ def points_in_buffered_rectangle(x, y, z, xyz_mins, xyz_maxs, rmax_xyz, period_x
             in_subvol = np.zeros_like(subregion_x).astype(bool) + (subregion_ix_iy_iz == (0, 0, 0))
             in_subvol_collector.append(in_subvol)
 
-    xout = np.concatenate(x_collector).astype(float)
-    yout = np.concatenate(y_collector).astype(float)
-    zout = np.concatenate(z_collector).astype(float)
-    inside_subvol = np.concatenate(in_subvol_collector).astype(bool)
-    indx = np.concatenate(indx_collector).astype(int)
+    if len(x_collector) == 0:
+        xout = np.zeros(0, dtype='f8')
+        yout = np.zeros(0, dtype='f8')
+        zout = np.zeros(0, dtype='f8')
+        indx = np.zeros(0, dtype='i8')
+        inside_subvol = np.zeros(0, dtype=bool)
+    else:
+        xout = np.concatenate(x_collector).astype(float)
+        yout = np.concatenate(y_collector).astype(float)
+        zout = np.concatenate(z_collector).astype(float)
+        indx = np.concatenate(indx_collector).astype(int)
+        inside_subvol = np.concatenate(in_subvol_collector).astype(bool)
 
     return xout, yout, zout, indx, inside_subvol
 
@@ -140,10 +147,16 @@ def points_in_rectangle(x, y, z, xyz_mins, xyz_maxs, period_xyz):
             z_collector.append(z[mask] - shift[2]*period_xyz[2])
             indx_collector.append(available_indices[mask])
 
-    xout = np.concatenate(x_collector).astype(float)
-    yout = np.concatenate(y_collector).astype(float)
-    zout = np.concatenate(z_collector).astype(float)
-    indx = np.concatenate(indx_collector).astype(int)
+    if len(x_collector) == 0:
+        xout = np.zeros(0, dtype='f8')
+        yout = np.zeros(0, dtype='f8')
+        zout = np.zeros(0, dtype='f8')
+        indx = np.zeros(0, dtype='i8')
+    else:
+        xout = np.concatenate(x_collector).astype(float)
+        yout = np.concatenate(y_collector).astype(float)
+        zout = np.concatenate(z_collector).astype(float)
+        indx = np.concatenate(indx_collector).astype(int)
     return xout, yout, zout, indx
 
 
