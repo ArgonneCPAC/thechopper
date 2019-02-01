@@ -13,5 +13,6 @@ setup(
     author_email="ahearin@anl.gov",
     description="Python tools to subdivide cosmological simulations and tabulate synthetic observables",
     long_description="Python tools to subdivide cosmological simulations and tabulate synthetic observables",
-    install_requires=["numpy"]
+    install_requires=["numpy"],
+    url="https://github.com/ArgonneCPAC/thechopper"
 )
