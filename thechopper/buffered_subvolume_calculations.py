@@ -1,11 +1,14 @@
-r"""Functions used to decompose the domain of a three-dimensional rectangular volume
+"""Functions used to decompose the domain of a three-dimensional rectangular volume
 with periodic boundary conditions.
 """
 import numpy as np
 
 
+__all__ = ('points_in_buffered_rectangle', 'points_in_rectangle', 'subvol_bounds_generator')
+
+
 def points_in_buffered_rectangle(x, y, z, xyz_mins, xyz_maxs, rmax_xyz, period_xyz):
-    r"""Return the subset of points inside a rectangular subvolume
+    """Return the subset of points inside a rectangular subvolume
     surrounded by a buffer region, accounting for periodic boundary conditions.
 
     Parameters
@@ -97,7 +100,7 @@ def points_in_buffered_rectangle(x, y, z, xyz_mins, xyz_maxs, rmax_xyz, period_x
 
 
 def points_in_rectangle(x, y, z, xyz_mins, xyz_maxs, period_xyz):
-    r"""Calculate the set of all points located in the rectangular subvolume [xyz_mins, xyz_maxs).
+    """Calculate the set of all points located in the rectangular subvolume [xyz_mins, xyz_maxs).
 
     Periodic boundary conditions are accounted for by including any points that
     fall inside the subvolume when one or more the coordinates is shifted by +/- period.
@@ -160,8 +163,31 @@ def points_in_rectangle(x, y, z, xyz_mins, xyz_maxs, period_xyz):
     return xout, yout, zout, indx
 
 
+def subvol_bounds_generator(rank, nranks, num_xdivs, num_ydivs, num_zdivs, period):
+    """
+    """
+    num_tot_subvols = num_xdivs*num_ydivs*num_zdivs
+    subvol_indices_all = np.arange(num_tot_subvols)
+    subvol_indices_rank = np.array_split(subvol_indices_all, nranks)[rank]
+
+    for subvol_indx in subvol_indices_rank:
+        ix, iy, iz = np.unravel_index(
+            subvol_indx, (num_xdivs, num_ydivs, num_zdivs) )
+        xlo, xhi = _get_subvol_bounds_1d(ix, period[0], num_xdivs)
+        ylo, yhi = _get_subvol_bounds_1d(iy, period[1], num_ydivs)
+        zlo, zhi = _get_subvol_bounds_1d(iz, period[2], num_zdivs)
+        xyz_mins = (xlo, ylo, zlo)
+        xyz_maxs = (xhi, yhi, zhi)
+        yield xyz_mins, xyz_maxs
+
+
+def _get_subvol_bounds_1d(ip, dim_length, dim_ndivs):
+    ds = dim_length/float(dim_ndivs)
+    return ip*ds, (ip+1)*ds
+
+
 def _pbc_generator_mask_and_shift(x, y, z, xyz_mins, xyz_maxs, period_xyz):
-    r"""Generate masks for 27 rectangular subvolumes obtained by
+    """Generate masks for 27 rectangular subvolumes obtained by
     by shifting the input rectangular subvolume by +/0/- period in each dimension
     """
     for bounds in _pbc_generator_xyz_bounds(xyz_mins, xyz_maxs, period_xyz):
@@ -179,7 +205,7 @@ def _pbc_generator_mask_and_shift(x, y, z, xyz_mins, xyz_maxs, period_xyz):
 
 
 def _pbc_generator_xyz_bounds(xyz_mins, xyz_maxs, period_xyz):
-    r"""Generate the bounds for 27 rectangular subvolumes obtained by
+    """Generate the bounds for 27 rectangular subvolumes obtained by
     by shifting the input rectangular subvolume by +/0/- period in each dimension
     """
     for ix in (-1, 0, 1):
@@ -197,22 +223,8 @@ def _pbc_generator_xyz_bounds(xyz_mins, xyz_maxs, period_xyz):
                 yield (ix, iy, iz), (xmin, ymin, zmin), (xmax, ymax, zmax)
 
 
-def _get_buffering_subregion_minmax(ip, pmin, pmax, rmax):
-    r"""Given a line segment (pmin, pmax) buffered by a region rmax,
-    calculate the segment (smin, smax) that either buffers or duplicates (pmin, pmax),
-    depending on the input variable ip.
-    """
-    if ip == -1:
-        smin, smax = pmin - rmax, pmin
-    elif ip == 0:
-        smin, smax = pmin, pmax
-    elif ip == 1:
-        smin, smax = pmax, pmax + rmax
-    return smin, smax
-
-
 def _buffering_rectangular_subregions(xyz_mins, xyz_maxs, rmax_xyz):
-    r"""Decompose the buffered subvolume into 27 subregions:
+    """Decompose the buffered subvolume into 27 subregions:
     one subregion for the subvolume itself, and the remaining 26 come from
     the rectanguloids adjacent to each face, edge, and corner.
 
@@ -236,3 +248,17 @@ def _buffering_rectangular_subregions(xyz_mins, xyz_maxs, rmax_xyz):
                 zmin, zmax = _get_buffering_subregion_minmax(iz, xyz_mins[2], xyz_maxs[2], rmax_xyz[2])
 
                 yield (ix, iy, iz), (xmin, ymin, zmin), (xmax, ymax, zmax)
+
+
+def _get_buffering_subregion_minmax(ip, pmin, pmax, rmax):
+    """Given a line segment (pmin, pmax) buffered by a region rmax,
+    calculate the segment (smin, smax) that either buffers or duplicates (pmin, pmax),
+    depending on the input variable ip.
+    """
+    if ip == -1:
+        smin, smax = pmin - rmax, pmin
+    elif ip == 0:
+        smin, smax = pmin, pmax
+    elif ip == 1:
+        smin, smax = pmax, pmax + rmax
+    return smin, smax
