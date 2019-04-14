@@ -24,7 +24,7 @@ def points_in_buffered_rectangle(x, y, z, xyz_mins, xyz_maxs, rmax_xyz, period_x
         Must have 0 <= xyz_mins <= xyz_maxs <= period_xyz
 
     rmax_xyz : 3-element sequence
-        Search radius length in the xyz direction.
+        Search radius distance in the xyz direction.
         Must have rmax_xyz <= period_xyz/2.
 
     period_xyz : 3-element sequence
@@ -46,7 +46,7 @@ def points_in_buffered_rectangle(x, y, z, xyz_mins, xyz_maxs, rmax_xyz, period_x
     indx : ndarray, shape (npts_buffered_subvol, )
         Index of the corresponding point in the input xyz arrays.
 
-        Note that xout[i] may not equal x[indx[i]] for cases where the point
+        xout[i] == x[indx[i]] except for cases where the point
         has been wrapped around the periodic boundaries.
 
     inside_subvol : ndarray, shape (npts_buffered_subvol, )
@@ -100,7 +100,7 @@ def points_in_buffered_rectangle(x, y, z, xyz_mins, xyz_maxs, rmax_xyz, period_x
 
 
 def points_in_rectangle(x, y, z, xyz_mins, xyz_maxs, period_xyz):
-    """Calculate the set of all points located in the rectangular subvolume [xyz_mins, xyz_maxs).
+    """Return the set of all points located in the rectangular subvolume [xyz_mins, xyz_maxs).
 
     Periodic boundary conditions are accounted for by including any points that
     fall inside the subvolume when one or more the coordinates is shifted by +/- period.
