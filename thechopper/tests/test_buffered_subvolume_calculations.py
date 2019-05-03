@@ -3,6 +3,7 @@
 import numpy as np
 from scipy.spatial import cKDTree
 from ..buffered_subvolume_calculations import points_in_buffered_rectangle
+from ..buffered_subvolume_calculations import rectangular_subvolume_cellnum
 
 
 def test1():
@@ -48,3 +49,18 @@ def test1():
     counts_aph = sample3_tree.count_neighbors(sample4_tree, rbins)
 
     assert np.all(counts_scipy == counts_aph), "Wrong pair counts!"
+
+
+def test2():
+    """
+    """
+    npts = 100
+    period = [200, 300, 800]
+    x = np.random.uniform(0, period[0], npts)
+    y = np.random.uniform(0, period[1], npts)
+    z = np.random.uniform(0, period[2], npts)
+    nx, ny, nz = 5, 6, 7
+    _result = rectangular_subvolume_cellnum(x, y, z, nx, ny, nz, period)
+    x2, y2, z2, ix2, iy2, iz2, cellnum2 = _result
+
+

@@ -4,7 +4,55 @@ with periodic boundary conditions.
 import numpy as np
 
 
-__all__ = ('points_in_buffered_rectangle', 'points_in_rectangle', 'subvol_bounds_generator')
+__all__ = ('rectangular_subvolume_cellnum', 'points_in_buffered_rectangle',
+        'points_in_rectangle', 'subvol_bounds_generator')
+
+
+def rectangular_subvolume_cellnum(x, y, z, nx, ny, nz, period):
+    """After wrapping the input x, y, z into the periodic box, assign each point
+    to a rectangular subvolume defined by the number of subdivisions in each dimension.
+
+    Parameters
+    ----------
+    x, y, z : ndarrays of shape (npts, )
+
+    nx, ny, nz : integers
+
+    period : float or 3-element sequence
+
+    Returns
+    -------
+    x, y, z : ndarrays of shape (npts, )
+        Identical to the input points except for cases where points have been
+        wrapped around the periodic boundaries
+
+    ix, iy, iz : ndarrays of shape (npts, )
+        Integer arrays that together specify the subvolume of each point
+
+    cellnum : ndarray of shape (npts, )
+        Integer array that by itself specifies the subvolume of each point,
+        e.g., (ix, iy, iz)=(0, 0, 0) <==> cellnum=0
+    """
+    period = np.atleast_1d(period)
+    if period.shape[0] == 1:
+        period = np.zeros(3) + period[0]
+    elif period.shape[0] != 3:
+        raise ValueError("period should be float or 3-element sequence")
+
+    x = np.atleast_1d(np.mod(x, period[0]))
+    y = np.atleast_1d(np.mod(y, period[1]))
+    z = np.atleast_1d(np.mod(z, period[2]))
+
+    _rescaled_x = nx*x/period[0]
+    _rescaled_y = ny*y/period[1]
+    _rescaled_z = nz*z/period[2]
+
+    ix = np.floor(_rescaled_x).astype('i4')
+    iy = np.floor(_rescaled_y).astype('i4')
+    iz = np.floor(_rescaled_z).astype('i4')
+
+    cellnum = np.ravel_multi_index( (ix, iy, iz), (nx, ny, nz) )
+    return x, y, z, ix, iy, iz, cellnum
 
 
 def points_in_buffered_rectangle(x, y, z, xyz_mins, xyz_maxs, rmax_xyz, period_xyz):
