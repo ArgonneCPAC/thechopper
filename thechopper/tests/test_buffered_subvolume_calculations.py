@@ -14,6 +14,9 @@ def generate_3d_regular_mesh(npts_per_dim, dmin, dmax):
     In each dimension, the first point has coordinate delta/2.,
     and the last point has coordinate dmax - delta/2.
 
+    For example, generate_3d_regular_mesh(5, 0, 1) will occupy the 3d grid spanned by
+    {0.1, 0.3, 0.5, 0.7, 0.9}.
+
     Parameters
     -----------
     npts_per_dim : int
@@ -35,10 +38,13 @@ def generate_3d_regular_mesh(npts_per_dim, dmin, dmax):
     delta = np.diff(x)[0]/2.
     x, y, z = np.array(np.meshgrid(x[:-1], y[:-1], z[:-1]))
     return x.flatten()+delta, y.flatten()+delta, z.flatten()+delta
-    # return np.vstack([x.flatten()+delta, y.flatten()+delta, z.flatten()+delta]).T
 
 
 def test1():
+    """Enforce that parallel pair counts with thechopper agree exactly
+    with serial pair counts for a set of randomly distributed points.
+    """
+    rng = np.random.RandomState(43)
 
     logrbins = np.linspace(-1, np.log10(250), 25)
     rbins = 10**logrbins
@@ -50,10 +56,12 @@ def test1():
     xyz_maxs = xyz_mins + subvol_lengths_xyz
 
     npts = int(2e4)
-    xyz = np.random.random((npts, 3))*period_xyz
-    x, y, z = xyz[:, 0], xyz[:, 1], xyz[:, 2]
+    x = rng.uniform(0, period_xyz[0], npts)
+    y = rng.uniform(0, period_xyz[1], npts)
+    z = rng.uniform(0, period_xyz[2], npts)
 
-    _w = points_in_buffered_rectangle(x, y, z, xyz_mins, xyz_maxs, rmax_xyz, period_xyz)
+    _w = points_in_buffered_rectangle(
+        x, y, z, xyz_mins, xyz_maxs, rmax_xyz, period_xyz)
     xout, yout, zout, indx_out, in_subvol_out = _w
 
     explicit_mask = np.ones(npts).astype(bool)
@@ -84,46 +92,69 @@ def test1():
 
 
 def test2():
+    """Require that the rectangular_subvolume_cellnum function
+    returns a cellnum array with all points lying within [0, nx*ny*nz)
     """
-    """
+    rng = np.random.RandomState(43)
+
     npts = int(1e2)
     period = [200, 300, 800]
-    x = np.random.uniform(0, period[0], npts)
-    y = np.random.uniform(0, period[1], npts)
-    z = np.random.uniform(0, period[2], npts)
+    x = rng.uniform(0, period[0], npts)
+    y = rng.uniform(0, period[1], npts)
+    z = rng.uniform(0, period[2], npts)
     nx, ny, nz = 5, 6, 7
     _result = rectangular_subvolume_cellnum(x, y, z, nx, ny, nz, period)
-    x2, y2, z2, ix2, iy2, iz2, cellnum2 = _result
-    assert np.all(cellnum2 >= 0)
-    assert np.all(cellnum2 < nx*ny*nz)
+    x2, y2, z2, ix, iy, iz, cellnum = _result
+    assert np.all(cellnum >= 0)
+    assert np.all(cellnum < nx*ny*nz)
     assert np.all(x == x2)
     assert np.all(y == y2)
     assert np.all(z == z2)
 
 
 def test3():
+    """Require that rectangular_subvolume_cellnum function wraps xyz points
+    lying outside the box back into the box.
     """
+    Lbox = 1.
+    npts_per_dim = 5
+    x, y, z = generate_3d_regular_mesh(npts_per_dim, 0, Lbox)
+    x[0] = -0.5
+    y[0] = -0.5
+    z[0] = -0.5
+
+    nx, ny, nz = npts_per_dim, npts_per_dim, npts_per_dim
+    _result = rectangular_subvolume_cellnum(x, y, z, nx, ny, nz, Lbox)
+    x2, y2, z2, ix, iy, iz, cellnum = _result
+    assert np.all(cellnum >= 0)
+    assert np.all(cellnum < nx*ny*nz)
+    assert np.all(x2 >= 0)
+    assert np.all(y2 >= 0)
+    assert np.all(z2 >= 0)
+    assert np.any(x < 0)
+    assert np.any(y < 0)
+    assert np.any(z < 0)
+
+
+def test4():
+    """Place a single point at the center of each subvolume and ensure that
+    the cellnum array returned by rectangular_subvolume_cellnum is correct.
     """
-    npts_per_dim = 20
+    Lbox = 1.
+    npts_per_dim = 5
+    x, y, z = generate_3d_regular_mesh(npts_per_dim, 0, Lbox)
 
-    x, y, z = generate_3d_regular_mesh(npts_per_dim, -500, 2500)
+    nx, ny, nz = npts_per_dim, npts_per_dim, npts_per_dim
+    _result = rectangular_subvolume_cellnum(x, y, z, nx, ny, nz, Lbox)
+    x2, y2, z2, ix, iy, iz, cellnum = _result
 
-    nx, ny, nz = 3, 4, 5
-    _result = rectangular_subvolume_cellnum(x, y, z, nx, ny, nz, 1500)
-    x2, y2, z2, ix2, iy2, iz2, cellnum2 = _result
-    assert np.all(cellnum2 >= 0)
-    assert np.all(cellnum2 < nx*ny*nz)
-    assert np.any(x != x2)
-    assert np.any(y != y2)
-    assert np.any(z != z2)
+    #  Every cell gets exactly one point
+    for icell in range(nx*ny*nz):
+        mask = cellnum == icell
+        assert np.count_nonzero(mask) == 1
 
-    mask = cellnum2 == 0
-    assert np.all(x2[mask] < 1500/float(nx))
-    assert np.all(y2[mask] < 1500/float(ny))
-    assert np.all(z2[mask] < 1500/float(nz))
-
-    mask = cellnum2 == nx*ny*nz - 1
-    assert np.all(x2[mask] >= 1500-1500/float(nx))
-    assert np.all(y2[mask] >= 1500-1500/float(ny))
-    assert np.all(z2[mask] >= 1500-1500/float(nz))
-
+    #  Check a few specific cases
+    mask_cellnum0 = cellnum == 0
+    assert np.all(x[mask_cellnum0] == np.array((0.1, )))
+    assert np.all(y[mask_cellnum0] == np.array((0.1, )))
+    assert np.all(z[mask_cellnum0] == np.array((0.1, )))
