@@ -226,7 +226,7 @@ def subvol_bounds_generator(rank, nranks, num_xdivs, num_ydivs, num_zdivs, perio
         zlo, zhi = _get_subvol_bounds_1d(iz, period[2], num_zdivs)
         xyz_mins = (xlo, ylo, zlo)
         xyz_maxs = (xhi, yhi, zhi)
-        yield xyz_mins, xyz_maxs
+        yield subvol_indx, xyz_mins, xyz_maxs
 
 
 def _get_subvol_bounds_1d(ip, dim_length, dim_ndivs):
