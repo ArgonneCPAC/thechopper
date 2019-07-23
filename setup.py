@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 
 PACKAGENAME = "thechopper"
@@ -14,5 +14,6 @@ setup(
     description="Python tools to subdivide cosmological simulations and tabulate synthetic observables",
     long_description="Python tools to subdivide cosmological simulations and tabulate synthetic observables",
     install_requires=["numpy"],
+    packages=find_packages(),
     url="https://github.com/ArgonneCPAC/thechopper"
 )
