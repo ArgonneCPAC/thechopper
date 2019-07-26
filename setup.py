@@ -15,5 +15,6 @@ setup(
     long_description="Python tools to subdivide cosmological simulations and tabulate synthetic observables",
     install_requires=["numpy"],
     packages=find_packages(),
+    scripts=scripts,
     url="https://github.com/ArgonneCPAC/thechopper"
 )
