@@ -4,7 +4,7 @@ with periodic boundary conditions.
 import numpy as np
 
 
-def get_chopped_data(data, nx, ny, nz, period, columns_to_retrieve):
+def get_chopped_data(data, nx, ny, nz, period, rmax, columns_to_retrieve):
     """
     Divide the input data into a collection of buffered subvolumes.
 
@@ -20,6 +20,10 @@ def get_chopped_data(data, nx, ny, nz, period, columns_to_retrieve):
         Length of the periodic box in each dimension.
         Box will be assumed to be a cube if passing a float.
 
+    rmax : Float or 3-element sequence
+        Search radius distance in each Cartesian direction.
+        Must have rmax <= period/2 in each dimension.
+
     columns_to_retrieve : list of strings
 
     Returns
@@ -33,6 +37,7 @@ def get_chopped_data(data, nx, ny, nz, period, columns_to_retrieve):
 
     """
     period_xyz = _get_3_element_sequence(period)
+    rmax_xyz = _get_3_element_sequence(rmax)
 
     columns_to_retrieve = list(set(columns_to_retrieve) - {'x', 'y', 'z'})
     chopped_data = {key: [] for key in columns_to_retrieve}
@@ -43,8 +48,8 @@ def get_chopped_data(data, nx, ny, nz, period, columns_to_retrieve):
     gen = _subvol_bounds_generator(nx, ny, nz, period_xyz)
     for subvol_bounds in gen:
         subvol_indx, xyz_mins, xyz_maxs = subvol_bounds
-        xout, yout, zout, indx = points_in_rectangle(
-            data['x'], data['y'], data['z'], xyz_mins, xyz_maxs, period_xyz)
+        xout, yout, zout, indx, inside_subvol = points_in_buffered_rectangle(
+            data['x'], data['y'], data['z'], xyz_mins, xyz_maxs, rmax_xyz, period_xyz)
 
         chopped_data['x'].append(xout)
         chopped_data['y'].append(yout)

@@ -2,7 +2,7 @@
 Example script demonstrating how to partition data into buffered subvolumes and
 distribute to MPI ranks for parallel processing.
 
-mpiexec -n 2 python chopit.py 2 2 2 1000 mass core_id
+mpiexec -n 2 python chopit.py 2 2 2 1000 30 mass core_id
 """
 import argparse
 from mpi4py import MPI
@@ -20,12 +20,14 @@ if __name__ == "__main__":
     parser.add_argument("ny_divs", type=int, help="Number of divisions in the y-dimension")
     parser.add_argument("nz_divs", type=int, help="Number of divisions in the z-dimension")
     parser.add_argument("period", type=float, help="Size of the periodic box")
+    parser.add_argument("rmax", type=float, help="Maximum search length. Defines the size of the subvolume buffer.")
     parser.add_argument("columns_to_retrieve", help="Name of columns to retrieve", nargs='*')
 
     args = parser.parse_args()
 
     nx_divs, ny_divs, nz_divs = args.nx_divs, args.ny_divs, args.nz_divs
     period = args.period
+    rmax = args.rmax
     columns_to_retrieve = args.columns_to_retrieve
 
     #  Fire up a communicator with one rank per compute node
@@ -43,7 +45,7 @@ if __name__ == "__main__":
 
     #  Get to the choppa!
     chopped_data = get_chopped_data(
-        new_data, nx_divs, ny_divs, nz_divs, period, columns_to_retrieve)
+        new_data, nx_divs, ny_divs, nz_divs, period, rmax, columns_to_retrieve)
     #  chopped_data is a dictionary. The keys are names of halo properties.
     #  A list of length nx_divs*ny_divs*nz_divs will be bound to each key.
     #  Each element in the list is a (possibly empty) ndarray
