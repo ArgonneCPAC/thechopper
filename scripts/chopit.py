@@ -62,6 +62,7 @@ if __name__ == "__main__":
     #  the MPI Alltoall function to transpose the collection of npts_to_send_to_rank
     npts_to_receive_from_rank = np.empty_like(npts_to_send_to_rank)
     comm.Alltoall(npts_to_send_to_rank, npts_to_receive_from_rank)
+    comm.Barrier()
     #  Now every rank knows how many points to send to each rank (npts_to_send_to_rank)
     #  and also how many points to receive from each rank (npts_to_receive_from_rank)
     #  This is all we need to use Alltoallv to distribute the data between ranks
