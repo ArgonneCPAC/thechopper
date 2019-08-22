@@ -74,6 +74,7 @@ if __name__ == "__main__":
         recv_counts = npts_to_receive_from_rank
         recv_buff = np.empty(recv_counts.sum(), dtype=sendbuf.dtype)
         comm.Alltoallv([sendbuf, send_counts], [recv_buff, recv_counts])
+        comm.Barrier()
 
         data_for_rank[colname] = recv_buff
 
