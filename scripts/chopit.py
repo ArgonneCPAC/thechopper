@@ -68,7 +68,8 @@ if __name__ == "__main__":
     #  This is all we need to use Alltoallv to distribute the data between ranks
 
     data_for_rank = dict()
-    for colname in flattened_chopped_data.keys():
+    deterministic_keylist = sorted(list(flattened_chopped_data.keys()))
+    for colname in deterministic_keylist:
         sendbuf = flattened_chopped_data[colname]
         send_counts = npts_to_send_to_rank
 
