@@ -4,6 +4,33 @@ with periodic boundary conditions.
 import numpy as np
 
 
+def get_data_for_rank(comm, data, nx, ny, nz, period, rmax, columns_to_retrieve):
+    """Chop the input data and return the subvolume for the input rank."""
+    nranks = comm.Get_size()
+    chopped_data = get_chopped_data(
+        data, nx, ny, nz, period, rmax, columns_to_retrieve)
+    flattened_chopped_data, npts_to_send_to_rank = assign_chopped_data_to_ranks(
+        chopped_data, nx, ny, nz, nranks)
+
+    npts_to_receive_from_rank = np.empty_like(npts_to_send_to_rank)
+    comm.Alltoall(npts_to_send_to_rank, npts_to_receive_from_rank)
+    comm.Barrier()
+
+    data_for_rank = dict()
+    deterministic_keylist = sorted(list(flattened_chopped_data.keys()))
+    for colname in deterministic_keylist:
+        sendbuf = flattened_chopped_data[colname]
+        send_counts = npts_to_send_to_rank
+        recv_counts = npts_to_receive_from_rank
+        recv_buff = np.empty(recv_counts.sum(), dtype=sendbuf.dtype)
+        comm.Alltoallv([sendbuf, send_counts], [recv_buff, recv_counts])
+        comm.Barrier()
+
+        data_for_rank[colname] = recv_buff
+
+    return data_for_rank
+
+
 def get_chopped_data(data, nx, ny, nz, period, rmax, columns_to_retrieve):
     """
     Divide the input data into a collection of buffered subvolumes.
@@ -62,7 +89,7 @@ def get_chopped_data(data, nx, ny, nz, period, rmax, columns_to_retrieve):
 
 
 def assign_chopped_data_to_ranks(chopped_data, nx, ny, nz, nranks):
-    """ Starting from data that has been spatially partitioned into buffered subvolumes
+    """Starting from data that has been spatially partitioned into buffered subvolumes
     (i.e., the output of the get_chopped_data function),
     count the number of points assigned to each rank and flatten the chopped data.
 
