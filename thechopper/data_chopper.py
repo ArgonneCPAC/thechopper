@@ -66,21 +66,52 @@ def get_chopped_data(data, nx, ny, nz, period, rmax, columns_to_retrieve):
     period_xyz = _get_3_element_sequence(period)
     rmax_xyz = _get_3_element_sequence(rmax)
 
-    columns_to_retrieve = list(set(columns_to_retrieve) - {'x', 'y', 'z'})
+    #  Wrap xyz into the box before assigning data to subvolumes
+    data['x'] = data['x'] % period_xyz[0]
+    data['y'] = data['y'] % period_xyz[1]
+    data['z'] = data['z'] % period_xyz[2]
+
+    #  Assign data to subvolumes
+    dx = float(period_xyz[0]/nx)
+    dy = float(period_xyz[1]/ny)
+    dz = float(period_xyz[2]/nz)
+    _ix = np.array(data['x'] // dx).astype(int)
+    _iy = np.array(data['y'] // dy).astype(int)
+    _iz = np.array(data['z'] // dz).astype(int)
+    data['_ix'] = _ix
+    data['_iy'] = _iy
+    data['_iz'] = _iz
+
+    #  columns_to_retrieve should include _ix, _iy, _iz, _inside_subvol, _subvol_indx
+    #  xyz get remapped and so will be treated separately
+    _always = {'x', 'y', 'z', '_inside_subvol', '_subvol_indx'}
+    _s = set(columns_to_retrieve) - _always
+    _cellids = {'_ix', '_iy', '_iz'}
+    _t = _s.union(_cellids)
+    columns_to_retrieve = list(_t)
+
     chopped_data = {key: [] for key in columns_to_retrieve}
     chopped_data['x'] = []
     chopped_data['y'] = []
     chopped_data['z'] = []
+    chopped_data['_inside_subvol'] = []
+    chopped_data['_subvol_indx'] = []
 
     gen = _subvol_bounds_generator(nx, ny, nz, period_xyz)
     for subvol_bounds in gen:
         subvol_indx, xyz_mins, xyz_maxs = subvol_bounds
-        xout, yout, zout, indx, inside_subvol = points_in_buffered_rectangle(
-            data['x'], data['y'], data['z'], xyz_mins, xyz_maxs, rmax_xyz, period_xyz)
+
+        _ret = points_in_buffered_rectangle(data['x'], data['y'], data['z'],
+            xyz_mins, xyz_maxs, rmax_xyz, period_xyz)
+        xout, yout, zout, indx, inside_subvol = _ret
 
         chopped_data['x'].append(xout)
         chopped_data['y'].append(yout)
         chopped_data['z'].append(zout)
+        chopped_data['_inside_subvol'].append(inside_subvol)
+
+        _subvol_indx = np.zeros(xout.size).astype(int) + subvol_indx
+        chopped_data['_subvol_indx'].append(_subvol_indx)
 
         for colname in columns_to_retrieve:
             chopped_data[colname].append(data[colname][indx])
@@ -108,16 +139,25 @@ def assign_chopped_data_to_ranks(chopped_data, nx, ny, nz, nranks):
     nranks : int
         Number of MPI ranks
     """
-    ndivs_total = nx*ny*nz
-    cells_assigned_to_rank = np.array_split(np.arange(ndivs_total), nranks)
-
     example_key = list(chopped_data.keys())[0]
     npts_in_cell = [arr.size for arr in chopped_data[example_key]]
 
-    npts_assigned_to_rank = list(
-        sum(npts_in_cell[i] for i in cells_assigned_to_rank[rank]) for rank in range(nranks))
-    flattened_data = {key: np.concatenate(chopped_data[key]) for key in chopped_data.keys()}
+    cells_assigned_to_ranks = _get_cells_assigned_to_ranks(
+            npts_in_cell, nx, ny, nz, nranks)
+
+    npts_assigned_to_rank = list(sum(npts_in_cell[i]
+            for i in cells_assigned_to_ranks[rank]) for rank in range(nranks))
+
+    flattened_data = {key: np.concatenate(chopped_data[key])
+        for key in chopped_data.keys()}
+
     return flattened_data, np.array(npts_assigned_to_rank).astype(int)
+
+
+def _get_cells_assigned_to_ranks(npts_in_cell, nx, ny, nz, nranks):
+    ndivs_total = nx*ny*nz
+    cells_assigned_to_rank = np.array_split(np.arange(ndivs_total), nranks)
+    return cells_assigned_to_rank
 
 
 def points_in_buffered_rectangle(x, y, z, xyz_mins, xyz_maxs, rmax_xyz, period):
