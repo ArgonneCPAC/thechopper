@@ -6,7 +6,7 @@ import numpy as np
 
 def get_data_for_rank(comm, data, nx, ny, nz, period, rmax, columns_to_retrieve):
     """Chop the input data and return the subvolume for the input rank."""
-    nranks = comm.Get_size()
+    rank, nranks = comm.Get_rank(), comm.Get_size()
     chopped_data = get_chopped_data(
         data, nx, ny, nz, period, rmax, columns_to_retrieve)
     flattened_chopped_data, npts_to_send_to_rank = assign_chopped_data_to_ranks(
@@ -18,17 +18,23 @@ def get_data_for_rank(comm, data, nx, ny, nz, period, rmax, columns_to_retrieve)
 
     data_for_rank = dict()
     deterministic_keylist = sorted(list(flattened_chopped_data.keys()))
+    send_counts = npts_to_send_to_rank
+    recv_counts = npts_to_receive_from_rank
     for colname in deterministic_keylist:
         sendbuf = flattened_chopped_data[colname]
-        send_counts = npts_to_send_to_rank
-        recv_counts = npts_to_receive_from_rank
         recv_buff = np.empty(recv_counts.sum(), dtype=sendbuf.dtype)
         comm.Alltoallv([sendbuf, send_counts], [recv_buff, recv_counts])
         comm.Barrier()
-
         data_for_rank[colname] = recv_buff
+        comm.Barrier()
 
-    return data_for_rank
+    cells_assigned_to_rank = _get_cells_assigned_to_ranks(nx, ny, nz, nranks)[rank]
+    output_data = dict()
+    for cellnum in cells_assigned_to_rank:
+        mask = data_for_rank['_subvol_indx'] == cellnum
+        output_data[cellnum] = {key: data_for_rank[key][mask] for key in data_for_rank.keys()}
+
+    return output_data
 
 
 def get_chopped_data(data, nx, ny, nz, period, rmax, columns_to_retrieve):
@@ -142,8 +148,7 @@ def assign_chopped_data_to_ranks(chopped_data, nx, ny, nz, nranks):
     example_key = list(chopped_data.keys())[0]
     npts_in_cell = [arr.size for arr in chopped_data[example_key]]
 
-    cells_assigned_to_ranks = _get_cells_assigned_to_ranks(
-            npts_in_cell, nx, ny, nz, nranks)
+    cells_assigned_to_ranks = _get_cells_assigned_to_ranks(nx, ny, nz, nranks)
 
     npts_assigned_to_rank = list(sum(npts_in_cell[i]
             for i in cells_assigned_to_ranks[rank]) for rank in range(nranks))
@@ -154,7 +159,7 @@ def assign_chopped_data_to_ranks(chopped_data, nx, ny, nz, nranks):
     return flattened_data, np.array(npts_assigned_to_rank).astype(int)
 
 
-def _get_cells_assigned_to_ranks(npts_in_cell, nx, ny, nz, nranks):
+def _get_cells_assigned_to_ranks(nx, ny, nz, nranks):
     ndivs_total = nx*ny*nz
     cells_assigned_to_rank = np.array_split(np.arange(ndivs_total), nranks)
     return cells_assigned_to_rank
