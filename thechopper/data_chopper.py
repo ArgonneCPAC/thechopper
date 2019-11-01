@@ -4,9 +4,13 @@ with periodic boundary conditions.
 import numpy as np
 
 
-def get_data_for_rank(comm, data, nx, ny, nz, period, rmax, columns_to_retrieve):
+def get_data_for_rank(comm, data, nx, ny, nz, period, rmax, columns_to_retrieve='all'):
     """Chop the input data and return the subvolume for the input rank."""
     rank, nranks = comm.Get_rank(), comm.Get_size()
+
+    if columns_to_retrieve == 'all':
+        columns_to_retrieve = sorted(list(data.keys()))
+
     chopped_data = get_chopped_data(
         data, nx, ny, nz, period, rmax, columns_to_retrieve)
     flattened_chopped_data, npts_to_send_to_rank = assign_chopped_data_to_ranks(
