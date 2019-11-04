@@ -3,7 +3,7 @@
 import numpy as np
 from scipy.spatial import cKDTree
 from ..buffered_subvolume_calculations import points_in_buffered_rectangle
-from ..buffered_subvolume_calculations import rectangular_subvolume_cellnum
+from ..buffered_subvolume_calculations import calculate_subvolume_id
 
 
 def generate_3d_regular_mesh(npts_per_dim, dmin, dmax):
@@ -92,7 +92,7 @@ def test1():
 
 
 def test2():
-    """Require that the rectangular_subvolume_cellnum function
+    """Require that the calculate_subvolume_id function
     returns a cellnum array with all points lying within [0, nx*ny*nz)
     """
     rng = np.random.RandomState(43)
@@ -103,7 +103,7 @@ def test2():
     y = rng.uniform(0, period[1], npts)
     z = rng.uniform(0, period[2], npts)
     nx, ny, nz = 5, 6, 7
-    _result = rectangular_subvolume_cellnum(x, y, z, nx, ny, nz, period)
+    _result = calculate_subvolume_id(x, y, z, nx, ny, nz, period)
     x2, y2, z2, ix, iy, iz, cellnum = _result
     assert np.all(cellnum >= 0)
     assert np.all(cellnum < nx*ny*nz)
@@ -113,7 +113,7 @@ def test2():
 
 
 def test3():
-    """Require that rectangular_subvolume_cellnum function wraps xyz points
+    """Require that calculate_subvolume_id function wraps xyz points
     lying outside the box back into the box.
     """
     Lbox = 1.
@@ -124,7 +124,7 @@ def test3():
     z[0] = -0.5
 
     nx, ny, nz = npts_per_dim, npts_per_dim, npts_per_dim
-    _result = rectangular_subvolume_cellnum(x, y, z, nx, ny, nz, Lbox)
+    _result = calculate_subvolume_id(x, y, z, nx, ny, nz, Lbox)
     x2, y2, z2, ix, iy, iz, cellnum = _result
     assert np.all(cellnum >= 0)
     assert np.all(cellnum < nx*ny*nz)
@@ -138,14 +138,14 @@ def test3():
 
 def test4():
     """Place a single point at the center of each subvolume and ensure that
-    the cellnum array returned by rectangular_subvolume_cellnum is correct.
+    the cellnum array returned by calculate_subvolume_id is correct.
     """
     Lbox = 1.
     npts_per_dim = 5
     x, y, z = generate_3d_regular_mesh(npts_per_dim, 0, Lbox)
 
     nx, ny, nz = npts_per_dim, npts_per_dim, npts_per_dim
-    _result = rectangular_subvolume_cellnum(x, y, z, nx, ny, nz, Lbox)
+    _result = calculate_subvolume_id(x, y, z, nx, ny, nz, Lbox)
     x2, y2, z2, ix, iy, iz, cellnum = _result
 
     #  Every cell gets exactly one point
