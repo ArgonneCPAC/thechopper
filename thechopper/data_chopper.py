@@ -1,6 +1,5 @@
 """Functions distribute chopped simulation data to MPI ranks."""
 import numpy as np
-from collections import OrderedDict
 from .buffered_subvolume_calculations import points_in_buffered_rectangle
 
 
@@ -58,12 +57,12 @@ def get_buffered_subvolumes(comm, catalog, nx, ny, nz, period, rmax,
         chopped_cat = get_all_chopped_data(
             catalog, nx, ny, nz, period, rmax, colnames)
     else:
-        chopped_cat = OrderedDict()
+        chopped_cat = dict()
 
     data_collection = []
     num_subvols = nx*ny*nz
     for isubvol in range(0, num_subvols):
-        cat_to_send = OrderedDict(((key, chopped_cat[key][isubvol]))
+        cat_to_send = dict(((key, chopped_cat[key][isubvol]))
                                   for key in chopped_cat.keys())
         dest_rank = _get_rank_responsible_for_subvol_id(
             isubvol, nx, ny, nz, nranks)
@@ -140,7 +139,7 @@ def get_all_chopped_data(data, nx, ny, nz, period, rmax, colnames):
     _t = _s.union(_cellids)
     columns_to_retrieve = list(_t)
 
-    chopped_data = OrderedDict(((key, [])) for key in columns_to_retrieve)
+    chopped_data = dict(((key, [])) for key in columns_to_retrieve)
     chopped_data['x'] = []
     chopped_data['y'] = []
     chopped_data['z'] = []
@@ -208,7 +207,7 @@ def _distribute_simdata(comm, halo_catalog, source, dest,
         columns_to_send = [s for s in np.atleast_1d(columns_to_send)]
 
     if rank == source:
-        recv_halocat = OrderedDict()
+        recv_halocat = dict()
 
         ncols_to_send = len(columns_to_send)
         comm.send(ncols_to_send, dest=dest, tag=tag)
@@ -222,7 +221,7 @@ def _distribute_simdata(comm, halo_catalog, source, dest,
             comm.Send(send_arr, dest=dest, tag=tag)
 
     elif rank == dest:
-        recv_halocat = OrderedDict()
+        recv_halocat = dict()
 
         ncols_to_recv = comm.recv(source=source, tag=tag)
 
@@ -235,7 +234,7 @@ def _distribute_simdata(comm, halo_catalog, source, dest,
             recv_halocat[recv_colname] = recvarray
 
     else:
-        recv_halocat = OrderedDict()
+        recv_halocat = dict()
 
     return recv_halocat
 
