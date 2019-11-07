@@ -49,10 +49,10 @@ def test1():
     logrbins = np.linspace(-1, np.log10(250), 25)
     rbins = 10**logrbins
 
-    subvol_lengths_xyz = np.array((1250, 1250, 1250)).astype(float)
-    rmax_xyz = np.repeat(np.max(rbins), 3).astype(float)
-    period_xyz = np.array((1500, 1500, 1500)).astype(float)
-    xyz_mins = np.array((0, 0, 0)).astype(float)
+    subvol_lengths_xyz = np.array((1250, 1250, 1250)).astype('f4')
+    rmax_xyz = np.repeat(np.max(rbins), 3).astype('f4')
+    period_xyz = np.array((1500, 1500, 1500)).astype('f4')
+    xyz_mins = np.array((0, 0, 0)).astype('f4')
     xyz_maxs = xyz_mins + subvol_lengths_xyz
 
     npts = int(2e4)
@@ -88,7 +88,7 @@ def test1():
 
     counts_aph = sample3_tree.count_neighbors(sample4_tree, rbins)
 
-    assert np.all(counts_scipy == counts_aph), "Wrong pair counts!"
+    assert np.allclose(counts_scipy, counts_aph, rtol=0.0001), "Wrong pair counts!"
 
 
 def test2():

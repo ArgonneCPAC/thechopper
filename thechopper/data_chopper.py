@@ -124,9 +124,9 @@ def get_all_chopped_data(data, nx, ny, nz, period, rmax, colnames):
     dx = float(period_xyz[0]/nx)
     dy = float(period_xyz[1]/ny)
     dz = float(period_xyz[2]/nz)
-    _ix = np.array(data['x'] // dx).astype(int)
-    _iy = np.array(data['y'] // dy).astype(int)
-    _iz = np.array(data['z'] // dz).astype(int)
+    _ix = np.array(data['x'] // dx).astype('i4')
+    _iy = np.array(data['y'] // dy).astype('i4')
+    _iz = np.array(data['z'] // dz).astype('i4')
     data['_ix'] = _ix
     data['_iy'] = _iy
     data['_iz'] = _iz
@@ -161,7 +161,7 @@ def get_all_chopped_data(data, nx, ny, nz, period, rmax, colnames):
         chopped_data['z'].append(zout)
         chopped_data['_inside_subvol'].append(inside_subvol)
 
-        _subvol_indx = np.zeros(xout.size).astype(int) + subvol_indx
+        _subvol_indx = np.zeros(xout.size).astype('i8') + subvol_indx
         chopped_data['_subvol_indx'].append(_subvol_indx)
 
         for colname in columns_to_retrieve:

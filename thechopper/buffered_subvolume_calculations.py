@@ -142,16 +142,16 @@ def points_in_buffered_rectangle(x, y, z, xyz_mins, xyz_maxs, rmax_xyz, period):
             in_subvol_collector.append(in_subvol)
 
     if len(x_collector) == 0:
-        xout = np.zeros(0, dtype='f8')
-        yout = np.zeros(0, dtype='f8')
-        zout = np.zeros(0, dtype='f8')
+        xout = np.zeros(0, dtype='f4')
+        yout = np.zeros(0, dtype='f4')
+        zout = np.zeros(0, dtype='f4')
         indx = np.zeros(0, dtype='i8')
         inside_subvol = np.zeros(0, dtype=bool)
     else:
-        xout = np.concatenate(x_collector).astype(float)
-        yout = np.concatenate(y_collector).astype(float)
-        zout = np.concatenate(z_collector).astype(float)
-        indx = np.concatenate(indx_collector).astype(int)
+        xout = np.concatenate(x_collector).astype('f4')
+        yout = np.concatenate(y_collector).astype('f4')
+        zout = np.concatenate(z_collector).astype('f4')
+        indx = np.concatenate(indx_collector).astype('i8')
         inside_subvol = np.concatenate(in_subvol_collector).astype(bool)
 
     return xout, yout, zout, indx, inside_subvol
@@ -199,7 +199,7 @@ def points_in_rectangle(x, y, z, xyz_mins, xyz_maxs, period):
     indx_collector = []
 
     npts_input_data = len(x)
-    available_indices = np.arange(npts_input_data).astype(int)
+    available_indices = np.arange(npts_input_data).astype('i8')
 
     for mask, shift in _pbc_generator_mask_and_shift(
             x, y, z, xyz_mins, xyz_maxs, period_xyz):
@@ -212,15 +212,15 @@ def points_in_rectangle(x, y, z, xyz_mins, xyz_maxs, period):
             indx_collector.append(available_indices[mask])
 
     if len(x_collector) == 0:
-        xout = np.zeros(0, dtype='f8')
-        yout = np.zeros(0, dtype='f8')
-        zout = np.zeros(0, dtype='f8')
-        indx = np.zeros(0, dtype='i8')
+        xout = np.zeros(0, dtype='f4')
+        yout = np.zeros(0, dtype='f4')
+        zout = np.zeros(0, dtype='f4')
+        indx = np.zeros(0, dtype='i4')
     else:
-        xout = np.concatenate(x_collector).astype(float)
-        yout = np.concatenate(y_collector).astype(float)
-        zout = np.concatenate(z_collector).astype(float)
-        indx = np.concatenate(indx_collector).astype(int)
+        xout = np.concatenate(x_collector).astype('f4')
+        yout = np.concatenate(y_collector).astype('f4')
+        zout = np.concatenate(z_collector).astype('f4')
+        indx = np.concatenate(indx_collector).astype('i8')
     return xout, yout, zout, indx
 
 
