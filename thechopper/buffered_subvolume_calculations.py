@@ -2,8 +2,11 @@
 import numpy as np
 
 
-__all__ = ('calculate_subvolume_id', 'points_in_buffered_rectangle',
-           'points_in_rectangle')
+__all__ = (
+    "calculate_subvolume_id",
+    "points_in_buffered_rectangle",
+    "points_in_rectangle",
+)
 
 
 def calculate_subvolume_id(x, y, z, nx, ny, nz, period):
@@ -44,13 +47,13 @@ def calculate_subvolume_id(x, y, z, nx, ny, nz, period):
     y = np.atleast_1d(np.mod(y, period[1]))
     z = np.atleast_1d(np.mod(z, period[2]))
 
-    _rescaled_x = nx*x/period[0]
-    _rescaled_y = ny*y/period[1]
-    _rescaled_z = nz*z/period[2]
+    _rescaled_x = nx * x / period[0]
+    _rescaled_y = ny * y / period[1]
+    _rescaled_z = nz * z / period[2]
 
-    ix = np.floor(_rescaled_x).astype('i4')
-    iy = np.floor(_rescaled_y).astype('i4')
-    iz = np.floor(_rescaled_z).astype('i4')
+    ix = np.floor(_rescaled_x).astype("i4")
+    iy = np.floor(_rescaled_y).astype("i4")
+    iz = np.floor(_rescaled_z).astype("i4")
 
     cellnum = np.ravel_multi_index((ix, iy, iz), (nx, ny, nz))
     return x, y, z, ix, iy, iz, cellnum
@@ -121,12 +124,12 @@ def points_in_buffered_rectangle(x, y, z, xyz_mins, xyz_maxs, rmax_xyz, period):
     indx_collector = []
     in_subvol_collector = []
 
-    for subregion in _buffering_rectangular_subregions(
-            xyz_mins, xyz_maxs, rmax_xyz):
+    for subregion in _buffering_rectangular_subregions(xyz_mins, xyz_maxs, rmax_xyz):
         subregion_ix_iy_iz, subregion_xyz_mins, subregion_xyz_maxs = subregion
 
         _points = points_in_rectangle(
-            x, y, z, subregion_xyz_mins, subregion_xyz_maxs, period_xyz)
+            x, y, z, subregion_xyz_mins, subregion_xyz_maxs, period_xyz
+        )
         subregion_x, subregion_y, subregion_z, subregion_indx = _points
 
         _npts = len(subregion_x)
@@ -136,22 +139,23 @@ def points_in_buffered_rectangle(x, y, z, xyz_mins, xyz_maxs, rmax_xyz, period):
             z_collector.append(subregion_z)
             indx_collector.append(subregion_indx)
 
-            in_subvol = (np.zeros_like(subregion_x).astype(bool)
-                         + (subregion_ix_iy_iz == (0, 0, 0)))
+            in_subvol = np.zeros_like(subregion_x).astype(bool) + (
+                subregion_ix_iy_iz == (0, 0, 0)
+            )
 
             in_subvol_collector.append(in_subvol)
 
     if len(x_collector) == 0:
-        xout = np.zeros(0, dtype='f4')
-        yout = np.zeros(0, dtype='f4')
-        zout = np.zeros(0, dtype='f4')
-        indx = np.zeros(0, dtype='i8')
+        xout = np.zeros(0, dtype="f4")
+        yout = np.zeros(0, dtype="f4")
+        zout = np.zeros(0, dtype="f4")
+        indx = np.zeros(0, dtype="i8")
         inside_subvol = np.zeros(0, dtype=bool)
     else:
-        xout = np.concatenate(x_collector).astype('f4')
-        yout = np.concatenate(y_collector).astype('f4')
-        zout = np.concatenate(z_collector).astype('f4')
-        indx = np.concatenate(indx_collector).astype('i8')
+        xout = np.concatenate(x_collector).astype("f4")
+        yout = np.concatenate(y_collector).astype("f4")
+        zout = np.concatenate(z_collector).astype("f4")
+        indx = np.concatenate(indx_collector).astype("i8")
         inside_subvol = np.concatenate(in_subvol_collector).astype(bool)
 
     return xout, yout, zout, indx, inside_subvol
@@ -199,28 +203,29 @@ def points_in_rectangle(x, y, z, xyz_mins, xyz_maxs, period):
     indx_collector = []
 
     npts_input_data = len(x)
-    available_indices = np.arange(npts_input_data).astype('i8')
+    available_indices = np.arange(npts_input_data).astype("i8")
 
     for mask, shift in _pbc_generator_mask_and_shift(
-            x, y, z, xyz_mins, xyz_maxs, period_xyz):
+        x, y, z, xyz_mins, xyz_maxs, period_xyz
+    ):
 
         _npts = np.count_nonzero(mask)
         if _npts > 0:
-            x_collector.append(x[mask] - shift[0]*period_xyz[0])
-            y_collector.append(y[mask] - shift[1]*period_xyz[1])
-            z_collector.append(z[mask] - shift[2]*period_xyz[2])
+            x_collector.append(x[mask] - shift[0] * period_xyz[0])
+            y_collector.append(y[mask] - shift[1] * period_xyz[1])
+            z_collector.append(z[mask] - shift[2] * period_xyz[2])
             indx_collector.append(available_indices[mask])
 
     if len(x_collector) == 0:
-        xout = np.zeros(0, dtype='f4')
-        yout = np.zeros(0, dtype='f4')
-        zout = np.zeros(0, dtype='f4')
-        indx = np.zeros(0, dtype='i4')
+        xout = np.zeros(0, dtype="f4")
+        yout = np.zeros(0, dtype="f4")
+        zout = np.zeros(0, dtype="f4")
+        indx = np.zeros(0, dtype="i4")
     else:
-        xout = np.concatenate(x_collector).astype('f4')
-        yout = np.concatenate(y_collector).astype('f4')
-        zout = np.concatenate(z_collector).astype('f4')
-        indx = np.concatenate(indx_collector).astype('i8')
+        xout = np.concatenate(x_collector).astype("f4")
+        yout = np.concatenate(y_collector).astype("f4")
+        zout = np.concatenate(z_collector).astype("f4")
+        indx = np.concatenate(indx_collector).astype("i8")
     return xout, yout, zout, indx
 
 
@@ -248,16 +253,16 @@ def _pbc_generator_mask_and_shift(x, y, z, xyz_mins, xyz_maxs, period_xyz):
 def _pbc_generator_xyz_bounds(xyz_mins, xyz_maxs, period_xyz):
     """Generate xyz bounds for 27 rectangular subvolumes."""
     for ix in (-1, 0, 1):
-        xmin = xyz_mins[0] + ix*period_xyz[0]
-        xmax = xyz_maxs[0] + ix*period_xyz[0]
+        xmin = xyz_mins[0] + ix * period_xyz[0]
+        xmax = xyz_maxs[0] + ix * period_xyz[0]
 
         for iy in (-1, 0, 1):
-            ymin = xyz_mins[1] + iy*period_xyz[1]
-            ymax = xyz_maxs[1] + iy*period_xyz[1]
+            ymin = xyz_mins[1] + iy * period_xyz[1]
+            ymax = xyz_maxs[1] + iy * period_xyz[1]
 
             for iz in (-1, 0, 1):
-                zmin = xyz_mins[2] + iz*period_xyz[2]
-                zmax = xyz_maxs[2] + iz*period_xyz[2]
+                zmin = xyz_mins[2] + iz * period_xyz[2]
+                zmax = xyz_maxs[2] + iz * period_xyz[2]
 
                 yield (ix, iy, iz), (xmin, ymin, zmin), (xmax, ymax, zmax)
 
@@ -280,15 +285,18 @@ def _buffering_rectangular_subregions(xyz_mins, xyz_maxs, rmax_xyz):
     """
     for ix in (-1, 0, 1):
         xmin, xmax = _get_buffering_subregion_minmax(
-            ix, xyz_mins[0], xyz_maxs[0], rmax_xyz[0])
+            ix, xyz_mins[0], xyz_maxs[0], rmax_xyz[0]
+        )
 
         for iy in (-1, 0, 1):
             ymin, ymax = _get_buffering_subregion_minmax(
-                iy, xyz_mins[1], xyz_maxs[1], rmax_xyz[1])
+                iy, xyz_mins[1], xyz_maxs[1], rmax_xyz[1]
+            )
 
             for iz in (-1, 0, 1):
                 zmin, zmax = _get_buffering_subregion_minmax(
-                    iz, xyz_mins[2], xyz_maxs[2], rmax_xyz[2])
+                    iz, xyz_mins[2], xyz_maxs[2], rmax_xyz[2]
+                )
 
                 yield (ix, iy, iz), (xmin, ymin, zmin), (xmax, ymax, zmax)
 
