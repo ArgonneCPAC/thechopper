@@ -3,11 +3,12 @@ import numpy as np
 from .buffered_subvolume_calculations import points_in_buffered_rectangle
 
 
-__all__ = ('get_buffered_subvolumes', 'get_all_chopped_data')
+__all__ = ("get_buffered_subvolumes", "get_all_chopped_data")
 
 
-def get_buffered_subvolumes(comm, catalog, nx, ny, nz, period, rmax,
-                           colnames='all', source_rank=0):
+def get_buffered_subvolumes(
+    comm, catalog, nx, ny, nz, period, rmax, colnames="all", source_rank=0
+):
     """Get the buffered subvolume data assigned to the MPI rank.
 
     Parameters
@@ -48,34 +49,33 @@ def get_buffered_subvolumes(comm, catalog, nx, ny, nz, period, rmax,
 
     """
     rank, nranks = comm.Get_rank(), comm.Get_size()
-    if colnames == 'all':
+    if colnames == "all":
         colnames = sorted(list(catalog.keys()))
     else:
         colnames = [s for s in np.atleast_1d(colnames)]
 
     if rank == source_rank:
-        chopped_cat = get_all_chopped_data(
-            catalog, nx, ny, nz, period, rmax, colnames)
+        chopped_cat = get_all_chopped_data(catalog, nx, ny, nz, period, rmax, colnames)
     else:
         chopped_cat = dict()
 
     data_collection = []
-    num_subvols = nx*ny*nz
+    num_subvols = nx * ny * nz
     for isubvol in range(0, num_subvols):
-        cat_to_send = dict(((key, chopped_cat[key][isubvol]))
-                                  for key in chopped_cat.keys())
-        dest_rank = _get_rank_responsible_for_subvol_id(
-            isubvol, nx, ny, nz, nranks)
+        cat_to_send = dict(
+            ((key, chopped_cat[key][isubvol])) for key in chopped_cat.keys()
+        )
+        dest_rank = _get_rank_responsible_for_subvol_id(isubvol, nx, ny, nz, nranks)
         if dest_rank == 0:
             data_collection.append(cat_to_send)
         else:
-            recv_cat = _distribute_simdata(
-                comm, cat_to_send, source_rank, dest_rank)
+            recv_cat = _distribute_simdata(comm, cat_to_send, source_rank, dest_rank)
             data_collection.append(recv_cat)
 
     datalist = list((d for d in data_collection if len(list(d.keys())) > 0))
-    ranklist = list((i for i, d in enumerate(data_collection)
-                     if len(list(d.keys())) > 0))
+    ranklist = list(
+        (i for i, d in enumerate(data_collection) if len(list(d.keys())) > 0)
+    )
     return datalist, ranklist
 
 
@@ -115,53 +115,53 @@ def get_all_chopped_data(data, nx, ny, nz, period, rmax, colnames):
     rmax_xyz = _get_3_element_sequence(rmax)
 
     #  Wrap xyz into the box before assigning data to subvolumes
-    data['x'] = data['x'] % period_xyz[0]
-    data['y'] = data['y'] % period_xyz[1]
-    data['z'] = data['z'] % period_xyz[2]
+    data["x"] = data["x"] % period_xyz[0]
+    data["y"] = data["y"] % period_xyz[1]
+    data["z"] = data["z"] % period_xyz[2]
 
     #  Assign data to subvolumes
-    dx = float(period_xyz[0]/nx)
-    dy = float(period_xyz[1]/ny)
-    dz = float(period_xyz[2]/nz)
-    _ix = np.array(data['x'] // dx).astype('i4')
-    _iy = np.array(data['y'] // dy).astype('i4')
-    _iz = np.array(data['z'] // dz).astype('i4')
-    data['_ix'] = _ix
-    data['_iy'] = _iy
-    data['_iz'] = _iz
+    dx = float(period_xyz[0] / nx)
+    dy = float(period_xyz[1] / ny)
+    dz = float(period_xyz[2] / nz)
+    _ix = np.array(data["x"] // dx).astype("i4")
+    _iy = np.array(data["y"] // dy).astype("i4")
+    _iz = np.array(data["z"] // dz).astype("i4")
+    data["_ix"] = _ix
+    data["_iy"] = _iy
+    data["_iz"] = _iz
 
     #  columns_to_retrieve always has the following columns:
     #   _ix, _iy, _iz, _inside_subvol, _subvol_indx
     #  xyz get remapped and so will be treated separately
-    _always = {'x', 'y', 'z', '_inside_subvol', '_subvol_indx'}
+    _always = {"x", "y", "z", "_inside_subvol", "_subvol_indx"}
     _s = set(colnames) - _always
-    _cellids = {'_ix', '_iy', '_iz'}
+    _cellids = {"_ix", "_iy", "_iz"}
     _t = _s.union(_cellids)
     columns_to_retrieve = list(_t)
 
     chopped_data = dict(((key, [])) for key in columns_to_retrieve)
-    chopped_data['x'] = []
-    chopped_data['y'] = []
-    chopped_data['z'] = []
-    chopped_data['_inside_subvol'] = []
-    chopped_data['_subvol_indx'] = []
+    chopped_data["x"] = []
+    chopped_data["y"] = []
+    chopped_data["z"] = []
+    chopped_data["_inside_subvol"] = []
+    chopped_data["_subvol_indx"] = []
 
     gen = _subvol_bounds_generator(nx, ny, nz, period_xyz)
     for subvol_bounds in gen:
         subvol_indx, xyz_mins, xyz_maxs = subvol_bounds
 
         _ret = points_in_buffered_rectangle(
-            data['x'], data['y'], data['z'],
-            xyz_mins, xyz_maxs, rmax_xyz, period_xyz)
+            data["x"], data["y"], data["z"], xyz_mins, xyz_maxs, rmax_xyz, period_xyz
+        )
         xout, yout, zout, indx, inside_subvol = _ret
 
-        chopped_data['x'].append(xout)
-        chopped_data['y'].append(yout)
-        chopped_data['z'].append(zout)
-        chopped_data['_inside_subvol'].append(inside_subvol)
+        chopped_data["x"].append(xout)
+        chopped_data["y"].append(yout)
+        chopped_data["z"].append(zout)
+        chopped_data["_inside_subvol"].append(inside_subvol)
 
-        _subvol_indx = np.zeros(xout.size).astype('i8') + subvol_indx
-        chopped_data['_subvol_indx'].append(_subvol_indx)
+        _subvol_indx = np.zeros(xout.size).astype("i8") + subvol_indx
+        chopped_data["_subvol_indx"].append(_subvol_indx)
 
         for colname in columns_to_retrieve:
             chopped_data[colname].append(data[colname][indx])
@@ -169,8 +169,7 @@ def get_all_chopped_data(data, nx, ny, nz, period, rmax, colnames):
     return chopped_data
 
 
-def _distribute_simdata(comm, halo_catalog, source, dest,
-                        tag=0, columns_to_send='all'):
+def _distribute_simdata(comm, halo_catalog, source, dest, tag=0, columns_to_send="all"):
     """Send data in the halo_catalog from source rank to destination rank.
 
     Parameters
@@ -201,7 +200,7 @@ def _distribute_simdata(comm, halo_catalog, source, dest,
     """
     rank = comm.Get_rank()
 
-    if columns_to_send == 'all':
+    if columns_to_send == "all":
         columns_to_send = sorted(list(halo_catalog.keys()))
     else:
         columns_to_send = [s for s in np.atleast_1d(columns_to_send)]
@@ -241,12 +240,11 @@ def _distribute_simdata(comm, halo_catalog, source, dest,
 
 def _subvol_bounds_generator(nx, ny, nz, period):
     """For every subvolume, yield its ID and its xyz bounds."""
-    num_tot_subvols = nx*ny*nz
+    num_tot_subvols = nx * ny * nz
     subvol_ids = np.arange(num_tot_subvols)
 
     for subvol_id in subvol_ids:
-        ix, iy, iz = np.unravel_index(
-            subvol_id, (nx, ny, nz) )
+        ix, iy, iz = np.unravel_index(subvol_id, (nx, ny, nz))
         xlo, xhi = _get_subvol_bounds_1d(ix, period[0], nx)
         ylo, yhi = _get_subvol_bounds_1d(iy, period[1], ny)
         zlo, zhi = _get_subvol_bounds_1d(iz, period[2], nz)
@@ -257,22 +255,20 @@ def _subvol_bounds_generator(nx, ny, nz, period):
 
 def _get_subvol_bounds_1d(ip, dim_length, dim_ndivs):
     """Get the boundaries of a 1-d line segment."""
-    ds = dim_length/float(dim_ndivs)
-    return ip*ds, (ip+1)*ds
+    ds = dim_length / float(dim_ndivs)
+    return ip * ds, (ip + 1) * ds
 
 
 def _get_subvol_ids_assigned_to_ranks(nx, ny, nz, nranks):
     """Assign subvolumes to the available ranks."""
-    ndivs_total = nx*ny*nz
-    subvol_ids_assigned_to_rank = np.array_split(
-        np.arange(ndivs_total), nranks)
+    ndivs_total = nx * ny * nz
+    subvol_ids_assigned_to_rank = np.array_split(np.arange(ndivs_total), nranks)
     return subvol_ids_assigned_to_rank
 
 
 def _get_rank_responsible_for_subvol_id(subvol_ID, nx, ny, nz, nranks):
     """Find the reank responsible for the subvolume."""
-    cells_assigned_to_ranks = _get_subvol_ids_assigned_to_ranks(
-        nx, ny, nz, nranks)
+    cells_assigned_to_ranks = _get_subvol_ids_assigned_to_ranks(nx, ny, nz, nranks)
     _x = [subvol_ID in arr for arr in cells_assigned_to_ranks]
     return _x.index(True)
 
