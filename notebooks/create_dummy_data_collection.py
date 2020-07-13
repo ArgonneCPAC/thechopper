@@ -6,7 +6,7 @@ from thechopper.dummy_data import dummy_halo_properties
 
 
 num_readers = 2
-num_files = 6
+num_files = 8
 
 counter = 0
 for ifile in range(num_files):
