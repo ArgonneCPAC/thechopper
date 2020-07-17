@@ -2,11 +2,11 @@ import numpy as np
 import h5py
 import glob
 import os
-import pickle
 from mpi4py import MPI
 from thechopper.data_chopper import get_data_for_rank
 from scipy.spatial import cKDTree
 
+# change to your location of dummy files created
 basepath = '/homes/avillarreal/repositories/thechopper/notebooks'
 nx, ny, nz = 2, 2, 2
 period, rmax = 1000, 30
@@ -18,7 +18,6 @@ all_sample0_fnames = sorted(
     glob.glob(basepath+"/DATA/sample0*.h5"))
 all_sample1_fnames = sorted(
     glob.glob(basepath+"/DATA/sample1*.h5"))
-#print('files to read in sample0: {}'.format(all_sample0_fnames))
 
 sample0_len = len(all_sample0_fnames)
 sample1_len = len(all_sample1_fnames)
@@ -33,7 +32,6 @@ master_data0 = dict()
 master_data1 = dict()
 for fname0, fname1 in zip(all_sample0_fnames, all_sample1_fnames):
     if (highrank > i >= lowrank):
-        #print('rank {} reading {}'.format(rank, fname0))
         with h5py.File(fname0, 'r') as hdf0:
             data0 = dict()
             data0['x'] = hdf0['x'][...].astype('f4')
@@ -62,11 +60,8 @@ for fname0, fname1 in zip(all_sample0_fnames, all_sample1_fnames):
             for key in data1.keys():
                 master_data1[key] = data1[key]
     i+=1
-print('rank {} read in {} points'.format(rank, len(master_data0['x'])))
 num_read0 = comm.gather(len(master_data0['x']), root=0)
 num_read1 = comm.gather(len(master_data1['x']), root=0)
-if rank == 0:
-    print('total read points is {} and {}'.format(np.sum(num_read0), np.sum(num_read1)))
 data0_for_rank = get_data_for_rank(comm, master_data0, nx, ny, nz, period, 0)
 data1_for_rank = get_data_for_rank(comm, master_data1, nx, ny, nz, period, rmax)
 for subvol0_id, subvol0_data in data0_for_rank.items():
@@ -76,11 +71,8 @@ for subvol1_id, subvol1_data in data1_for_rank.items():
     sample1 = data1_for_rank[subvol1_id]
     mask1 = sample1['_inside_subvol'] == True
     num_data1 += len(sample1['x'][mask1])
-print('rank {} has {} points'.format(rank, num_data0))
 num_chopped0 = comm.gather(num_data0, root=0)
 num_chopped1 = comm.gather(num_data1, root=0)
-if rank == 0:
-    print('total chopped points is {} and {}'.format(np.sum(num_chopped0),np.sum(num_chopped1)))
 rank_counts = 0
 # now that data is read, let's try doing pair counting
 for subvol0_id, subvol0_data in data0_for_rank.items():
@@ -98,9 +90,6 @@ for subvol0_id, subvol0_data in data0_for_rank.items():
         z1 = sample1['z']
         pos1 = np.vstack((x1, y1, z1)).T
         tree1 = cKDTree(pos1)
-        if rank == 0:
-            pickle.dump(sample0, open('sample0.p', 'wb'))
-            pickle.dump(sample1, open('sample1.p', 'wb'))
         these_counts = tree0.count_neighbors(tree1, rmax)
     except KeyError:
         these_counts = 0
